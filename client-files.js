@@ -8,12 +8,11 @@ const port = 8124;
 
 const client = new net.Socket();
 let questionAndAnswers = getArrayOfQA('qa.json');
-
+let isEmptyDir = false;
 client.setEncoding('utf8');
 
 function sendFiles(pathToDir)
 {
-	console.log(pathToDir);
 	fs.readdir(pathToDir, function(err, listOfContents)
 	{
 		if (err)
@@ -24,6 +23,7 @@ function sendFiles(pathToDir)
 		listOfContents.forEach(element =>
 		{
 			let filePath = pathToDir + "\\" + element;
+			console.log("file " + filePath);
 			fs.stat(filePath, function(err, stats)
 			{
 				if (err)
@@ -37,12 +37,24 @@ function sendFiles(pathToDir)
 				}
 				if (stats.isFile())
 				{
-					fs.readFile(filePath, (err, data) => {
-						let buf = data.toString('hex');
-
-						client.write(buf);
-						client.write(path.basename(filePath));
-					})
+					console.log("file " + filePath);
+					let data = fs.readFileSync(filePath);
+					let buf = data.toString('UTF8');
+					var msg = [];
+					msg.push(buf);
+					msg.push(path.basename(filePath));
+					client.write(JSON.stringify(msg));
+					console.log("send");
+				}
+				if (listOfContents.indexOf(element) === listOfContents.length - 1)
+				{
+					counter++;
+					console.log("Counter");
+					isEmptyDir = true;
+				}
+				else
+				{
+					isEmptyDir = false;
 				}
 			});
 		});
@@ -68,20 +80,30 @@ let isConnected = false;
 client.on('data', function (data) {
 	console.log("Received from server: " + data);
 	if (isConnected) {
-		console.log(`Question: ${questionAndAnswers[counter - 1].question}\r\nAnswer: ${data}\r\nRight: ${questionAndAnswers[counter - 1].answer === data ? "yes" : "no"}\r\n`);
-		if (counter === questionAndAnswers.length) {
-			client.destroy();
-			process.exit(0);
+		if (data === "NEXT"){
+			if (process.argv[counter] === undefined) {
+				console.log("recv");
+				client.destroy();
+				console.log("recv2");
+				process.exit(0);
+			}
+			sendFiles(process.argv[counter]);
 		}
 		else {
-			client.write(`Question: ${questionAndAnswers[counter++].question}`);
+			console.log(`Question: ${questionAndAnswers[counter - 1].question}\r\nAnswer: ${data}\r\nRight: ${questionAndAnswers[counter - 1].answer === data ? "yes" : "no"}\r\n`);
+			if (counter === questionAndAnswers.length) {
+				client.destroy();
+				process.exit(0);
+			}
+			else {
+				client.write(`Question: ${questionAndAnswers[counter++].question}`);
+			}
 		}
 	}
 	else {
 		if (data === "ACK") {
-			sendFiles(process.argv[counter++]);
+			sendFiles(process.argv[counter]);
 			isConnected = true;
-			client.write(`Question: ${questionAndAnswers[counter++].question}`);
 		}
 		else {
 			client.destroy();
@@ -93,6 +115,10 @@ client.on('data', function (data) {
 
 client.on('close', function () {
 	console.log('Connection closed');
+});
+
+client.on('destroy', function () {
+	console.log('Connection destroyed');
 });
 
 
