@@ -4,7 +4,7 @@ const path = require('path');
 const getArrayOfQA = require('./getArrayOfQA');
 const port = 8124;
 let questionAndAnswers = getArrayOfQA('qa.json');
-const defaultDir = "D:\\Документы\\Университет\\5 семестр\\ПСКП\\cwp-03";
+const defaultDir = process.env.CWP_DIR_FOR_CLIENT;
 
 if (!fs.existsSync("log"))
 {
@@ -34,6 +34,7 @@ const server = net.createServer((client) => {
     let isFiles = false;
 	client.on('end', () => console.log('Client disconnected\r\n'));
 	client.on('data', (data) => {
+		// client.on('end', () => console.log('Client disconnected\r\n'));
         fs.appendFile(filename, data + "\r\n", (err) => {
 	        if (err)
 	        {
@@ -44,16 +45,29 @@ const server = net.createServer((client) => {
         {
 	        if (isFiles)
 	        {
-	        	console.log("1");
-		        let buf = Buffer.from(JSON.parse(data)[0], 'UTF8');
-		        let filePath = defaultDir + "\\" + client.identifier + "\\" + JSON.parse(data)[1];
-		        console.log(JSON.parse(data)[1]);
-		        fil = fs.createWriteStream(filePath, 'UTF8');
-		        fil.write(buf);
-		        console.log("2");
-		        fil.close();
-		        console.log("NEXT");
-		        client.write("NEXT");
+	        	if (data === 'END')
+		        {
+			        // isFiles = false;
+			        // isConnected = false;
+			        client.end();
+			        console.log("end");
+		        }
+		        else if (data === 'ERR')
+		        {
+			        console.log("err end");
+			        client.end();
+		        }
+		        else
+		        {
+			        let filePath = defaultDir + "\\" + client.identifier + "\\" + JSON.parse(data)[1];
+			        fs.appendFile(filePath, JSON.parse(data)[0] + "\r\n", (err) => {
+				        if (err)
+				        {
+					        throw "Error found: " + err;
+				        }
+			        });
+			        client.write("NEXT");
+		        }
 	        }
 	        else
 	        {
@@ -93,6 +107,7 @@ const server = net.createServer((client) => {
 	        else
 	        {
 	        	message = "DEC";
+	        	console.log("disconnect.");
 		        client.write(message);
 		        client.end();
 	        }
