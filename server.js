@@ -1,10 +1,10 @@
 const net = require('net');
 const fs = require('fs');
-const path = require('path');
 const getArrayOfQA = require('./getArrayOfQA');
 const port = 8124;
 let questionAndAnswers = getArrayOfQA('qa.json');
 const defaultDir = process.env.CWP_DIR_FOR_CLIENT;
+const maxClients = process.env.CWP_MAX_CLIENTS;
 
 if (!fs.existsSync("log"))
 {
@@ -17,6 +17,7 @@ if (!fs.existsSync("log"))
 	});
 }
 
+let counterOfClients = 0;
 const server = net.createServer((client) => {
     let seed = 0;
     console.log('Client connected');
@@ -50,12 +51,14 @@ const server = net.createServer((client) => {
 			        // isFiles = false;
 			        // isConnected = false;
 			        client.end();
+			        counterOfClients -= 1;
 			        console.log("end");
 		        }
 		        else if (data === 'ERR')
 		        {
 			        console.log("err end");
 			        client.end();
+			        counterOfClients -= 1;
 		        }
 		        else
 		        {
@@ -95,6 +98,14 @@ const server = net.createServer((client) => {
             {
 	            if (data === 'FILES') {
 	            	isFiles = true;
+	            	if (counterOfClients <= maxClients)
+		            {
+		            	counterOfClients += 1;
+		            }
+		            else
+		            {
+		            	client.end();
+		            }
 	            	fs.mkdir(defaultDir + "\\" + client.identifier, (err) =>
 		            {
 		            	console.log(err);
