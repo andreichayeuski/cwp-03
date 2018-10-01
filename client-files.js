@@ -1,7 +1,6 @@
 const net = require('net');
 const fs = require('fs');
 const path = require('path');
-// const readLine = require('readline');
 
 const port = 8124;
 
@@ -50,9 +49,6 @@ function sendFiles(pathToDir)
 					if (process.argv[counter] === undefined) {
 						console.log("End of files.");
 						client.destroy();
-						// process.exit(0);
-						// isConnected = false;
-						// client.write('END');
 					}
 					else
 					{
@@ -69,12 +65,6 @@ function sendFiles(pathToDir)
 	})
 }
 
-// const rl = readLine.createInterface({
-// input: process.stdin,
-// output: process.stdout
-// });
-
-// rl.question('Input a command\r\n', (answer) => {
 client.connect(port, function (err) {
 	if (err) {
 		throw err;
@@ -93,9 +83,6 @@ client.on('data', function (data) {
 			if (process.argv[counter] === undefined) {
 				console.log("End of files.");
 				client.destroy();
-				// process.exit(0);
-				// isConnected = false;
-				// client.write('END');
 			}
 			else
 			{
@@ -104,7 +91,6 @@ client.on('data', function (data) {
 		}
 		else{
 			console.log("err");
-			// client.destroy();
 		}
 	}
 	else {
@@ -126,7 +112,3 @@ client.on('close', function () {
 client.on('destroy', function () {
 	console.log('Connection destroyed');
 });
-
-
-// rl.close();
-// });
